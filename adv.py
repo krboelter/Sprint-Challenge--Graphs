@@ -36,35 +36,89 @@ player = Player(world.starting_room)
 traversal_path = []
 graph = {}
 graph[0] = {'n': '?', 's': '?', 'w': '?', 'e': '?'}
-stack = []
-stack.append(graph[0])
-visited = []
-# if something is in path_back, this is a way back.
-# once no more directions can be traveled in path_back, remove room from path_back
-way_back = [] # stack
-# if something is in visteded but not in way back, that means there are 2 ajoining paths
+visited = set()
 
-while len(stack) > 0:
-    # check all directions, log which ones are available
-    current_room = stack.pop() # gets current room with directions
-    current_room_id = player.current_room.id # current room number
+def dfs_1(starting_dir):
+    stack = []
+    stack.append(start)
+    new_dir = []
+    new_dir.append(starting_dir)
 
-    if current_room_id not in graph:
-        room_directions = player.current_room.get_exits() # all directions that exist for that room
-        for dir in room_directions:
-            graph[current_room_id][str(dir)] = '?'
+    while len(stack) > 0:
+        current = stack.pop()
+        new_dir.pop()
 
-        print(graph[current_room_id], "CURENT ROOM ID")
+        if current not in visited:
+            visited.add(current)
+            player.travel(new_dir)
+            traversal_path.append(new_dir)
 
-    for dir in current_room:
-        # add room to visited
-        # if it hasn't been visited and isn't in way_back it's a new room
-        # add current room to stack and way back
-        if dir not in visited and dir not in way_back: # this room has never been visited
+            for i in player.current_room.get_exits():
+                new_dir.append(i)
+
+dfs_1(player.current_room.id)
 
 
+def opposite(dir):
+    if dir == 'n':
+        return 's'
+    elif dir == 's':
+        return 'n'
+    elif dir == 'e':
+        return 'w'
+    elif dir == 'w':
+        return 'e'
+
+# start will equal the current room
+def dfs(start):
+    stack = []
+    stack.append([start])
+
+    while len(stack) > 0:
+        current_room = stack.pop()
+        current_room_id = player.current_room.id
+        path_dirs = player.current_room.get_exits()
+
+        for dir in path_dirs: # make sure to break for every direction taken
+            # this path will be the first path that hasn't been visited
+            opposite_dir = opposite(dir) # get the opposite direction
+
+            if current_room[current_room_id][dir] == "?": # has not been visited
+                player.travel(dir) # move the player
+                new_room_id = player.current_room.id # set new room id
+                new_dirs = player.current_room.get_exits() # get new room directions
+
+                if new_room_id not in graph: # if the new location isn't in graph...
+                    graph[new_room_id] = {} # add it to the graph
+
+                    for i in new_dirs:
+                        graph[new_room_id][i] = '?' # add a '?' for each location of new room
+
+                # update old room with new location
+                graph[current_room_id][dir] = new_room_id # old location in graph, update with new room id
+                # update new room with old location
+                graph[new_room_id][opposite_dir] = current_room_id # add the old location to the new graph entry
+
+                if '?' in current_room: # if there are still '?' in the current room, add to stack
+                    stack.append(current_room) # add the current room to the stack (still more rooms to explore)
+                else:
+                    break
+                    # MIGHT NEED TO CALL BFS HERE
+                    # player.travel(opposite_dir) # travel back from the direction you came
+
+                if '?' in graph[new_room_id]: # if there are still rooms to explore
+                    stack.append(graph[current_room_id]) # add it to the stack
 
 
+        print(graph, "GRAPH AS OF NOW")
+        stack = []
+
+
+# dfs(graph[0])
+
+def bfs(start, end):
+    stack = []
+    visited = []
 
 
 # TRAVERSAL TEST - DO NOT MODIFY
