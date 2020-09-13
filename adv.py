@@ -13,8 +13,8 @@ world = World()
 # map_file = "maps/test_line.txt"
 # map_file = "maps/test_cross.txt"
 # map_file = "maps/test_loop.txt"
-map_file = "maps/test_loop_fork.txt"
-# map_file = "maps/main_maze.txt"
+# map_file = "maps/test_loop_fork.txt"
+map_file = "maps/main_maze.txt"
 
 # Loads the map into a dictionary
 room_graph=literal_eval(open(map_file, "r").read())
@@ -54,32 +54,41 @@ def dfs_1(starting_room):
     visited = set()
 
     while len(stack) > 0:
-        print(player.current_room.id, "CURRENT ROOM")
         values = stack.pop()
         current = values[0]
         exits = player.current_room.get_exits() # get all exits [checks from n, s, w, e]
-
-        # still need to move back to where there is an unexplored direction
-        # before this fires, need to make sure there are no more places to go
-        if len(dir_stack) >= 1 and len(exits) <= 1:
-            print(player.current_room.id)
-
-            while len(dir_stack) > 0:
-                new_dir = dir_stack.pop()
-                player.travel(opposite(new_dir))
-                traversal_path.append(opposite(new_dir))
-
-                # print(dir_stack, "DIR STACK SUBTRACT")
-            # player.travel(stack[-1][1])
-            # traversal_path.append(stack[-1][1])
-            exits = player.current_room.get_exits()
 
 
         # have not been to the room before
         if current not in visited:
             visited.add(current)
 
-            if len(exits) >= 2: # if there are more than one exit (there will always be one from the way you came)
+            exits_available = False
+            for i in exits:
+                if player.current_room.get_room_in_direction(i).id not in visited:
+                    exits_available = True
+
+            if len(dir_stack) >= 1 and len(exits) <= 1 or len(dir_stack) >= 1 and exits_available == False:
+                # move backwards through each room until you get to a room with something unvisited
+                # if it goes back to a room that has unvisited neighbors, visit that path
+                while len(dir_stack) > 0:
+                    are_exits = False
+                    new_dir = dir_stack.pop()
+                    player.travel(opposite(new_dir))
+                    traversal_path.append(opposite(new_dir))
+
+                    exits = player.current_room.get_exits()
+                    for i in exits:
+                        if player.current_room.get_room_in_direction(i).id not in visited:
+                            are_exits = True
+
+                    if player.current_room.id == 0 and are_exits == False:
+                        return traversal_path
+
+                    if are_exits == True:
+                        break
+
+            if len(exits) >= 1: # if there are more than one exit (there will always be one from the way you came)
                 exits_added = [] # only get the exits not in visited
 
                 for i in exits:
@@ -93,9 +102,6 @@ def dfs_1(starting_room):
                 player.travel(exits_added[-1]) # travel in the direction of the last exit added to stack
                 traversal_path.append(exits_added[-1]) # add direction traveld to the traversal path
                 dir_stack.append(exits_added[-1]) # add the direction traveled
-
-
-
 
 
 dfs_1(player.current_room.id)
